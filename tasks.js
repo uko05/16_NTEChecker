@@ -5,10 +5,13 @@
 
 export const CONFIG = {
   // 隔週リセット基準日（月曜 05:00 を基準に2週サイクル）
-  biweeklyBaseDate: '2026-04-28',
+  biweeklyBaseDate: '2026-05-11',
 
   // 大型アプデ基準日（6週ごとにアプデ、前半3週/後半3週に分かれる）
-  updateBaseDate: '2026-04-07',
+  updateBaseDate: '2026-04-29',
+
+  // アプデサイクルの週数（前半・後半はこの半分）
+  updateCycleWeeks: 6,
 };
 
 // ------------------------------------------------------------
@@ -29,6 +32,7 @@ export const I18N = {
     nextReset:       '次のリセットまで',
     nextUpdate:      '次の大型アプデ',
     nextHalf:        '次のフェーズ',
+    nextPhaseFrom:   '次のフェーズ開始',
     currentPhase:    '現在のフェーズ',
     firstHalf:       '前半',
     secondHalf:      '後半',
@@ -58,6 +62,7 @@ export const I18N = {
     nextReset:       'Next reset in',
     nextUpdate:      'Next Major Update',
     nextHalf:        'Next Phase',
+    nextPhaseFrom:   'Next Phase Start',
     currentPhase:    'Current Phase',
     firstHalf:       'First Half',
     secondHalf:      'Second Half',

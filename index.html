@@ -340,6 +340,44 @@
       box-shadow: 0 0 5px rgba(255,140,0,0.55);
     }
 
+    /* ウィーク列（ドット＋番号＋日付） */
+    .week-grid {
+      display: grid;
+      gap: 4px;
+      margin-top: 12px;
+    }
+    .week-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+    .week-num {
+      font-size: 0.58rem;
+      color: var(--muted);
+      font-weight: bold;
+    }
+    .week-date {
+      font-size: 0.52rem;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.3;
+    }
+    .week-col.past .week-num,
+    .week-col.past .week-date { color: #b38a00; }
+    .week-col.current .week-num,
+    .week-col.current .week-date { color: #e67c00; font-weight: bold; }
+
+    /* プログレスバー下の日付ライン */
+    .progress-dates {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.6rem;
+      color: var(--muted);
+      margin-top: 4px;
+      padding: 0 2px;
+    }
+
     /* ========== 設定パネル ========== */
     .settings-overlay {
       position: fixed;
@@ -792,108 +830,137 @@
 
     // ========== アプデ情報計算 ==========
     function getCycleInfo() {
+      const cw      = CONFIG.updateCycleWeeks || 6;  // サイクル週数
+      const hw      = cw / 2;                        // 前半/後半の境界（週）
       const base    = new Date(CONFIG.updateBaseDate + 'T05:00:00');
       const now     = new Date();
       const weekMs  = 7 * 86400000;
       const diffMs  = now - base;
 
       if (diffMs < 0) {
+        const csMs = base.getTime();
         return { cycleNo: 1, weekInCycle: 0, phase: 'first', pct: 0,
-          nextHalfDate: new Date(base.getTime() + 3 * weekMs),
-          nextMajorDate: new Date(base.getTime() + 6 * weekMs) };
+          cycleStartMs: csMs,
+          nextHalfDate:  new Date(csMs + hw * weekMs),
+          nextMajorDate: new Date(csMs + cw * weekMs) };
       }
 
       const totalWeeks  = diffMs / weekMs;
-      const cycleNo     = Math.floor(totalWeeks / 6) + 1;
-      const weekInCycle = totalWeeks % 6;          // 0.0 〜 5.99...
-      const phase       = weekInCycle < 3 ? 'first' : 'second';
-      const pct         = (weekInCycle / 6) * 100;
+      const cycleNo     = Math.floor(totalWeeks / cw) + 1;
+      const weekInCycle = totalWeeks % cw;
+      const phase       = weekInCycle < hw ? 'first' : 'second';
+      const pct         = (weekInCycle / cw) * 100;
 
-      const cycleStartMs  = base.getTime() + Math.floor(totalWeeks / 6) * 6 * weekMs;
+      const cycleStartMs  = base.getTime() + Math.floor(totalWeeks / cw) * cw * weekMs;
       const nextHalfDate  = phase === 'first'
-        ? new Date(cycleStartMs + 3 * weekMs)
-        : new Date(cycleStartMs + 6 * weekMs);
-      const nextMajorDate = new Date(cycleStartMs + 6 * weekMs);
+        ? new Date(cycleStartMs + hw * weekMs)
+        : new Date(cycleStartMs + cw * weekMs);
+      const nextMajorDate = new Date(cycleStartMs + cw * weekMs);
 
-      return { cycleNo, weekInCycle, phase, pct, nextHalfDate, nextMajorDate };
+      return { cycleNo, weekInCycle, phase, pct, cycleStartMs, nextHalfDate, nextMajorDate };
     }
 
     function fmtDate(d) {
       return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
     }
 
-    function fmtDiff(ms) {
+    function fmtDiffShort(ms) {
       if (ms <= 0) return '';
       const d = Math.floor(ms / 86400000);
       const h = Math.floor((ms % 86400000) / 3600000);
       const m = Math.floor((ms % 3600000)  / 60000);
-      if (d > 0) return `(${d}${t('d')}${h}${t('h')})`;
-      return `(${h}${t('h')}${m}${t('m')})`;
+      const pre = lang === 'ja' ? '残り' : 'in ';
+      if (d > 0) return `(${pre}${d}${t('d')} ${h}${t('h')})`;
+      return `(${pre}${h}${t('h')} ${m}${t('m')})`;
     }
 
     function renderUpdatePanel() {
       const panel = document.getElementById('panel-update');
       const info  = getCycleInfo();
-      const weekNo = Math.floor(info.weekInCycle) + 1;
+      const cw    = CONFIG.updateCycleWeeks || 6;
+      const hw    = cw / 2;
+      const weekMs = 7 * 86400000;
+      const now   = new Date();
 
-      let dots = '';
-      for (let i = 1; i <= 6; i++) {
-        let cls = 'week-dot';
-        if (i < weekNo)  cls += ' past';
-        if (i === weekNo) cls += ' current';
-        dots += `<div class="${cls}"></div>`;
+      const weekNo       = Math.floor(info.weekInCycle) + 1;
+      const phaseLabel   = info.phase === 'first' ? t('firstHalf') : t('secondHalf');
+      const phaseClass   = info.phase === 'first' ? 'first' : 'second';
+      const halfDiff     = info.nextHalfDate  - now;
+      const majorDiff    = info.nextMajorDate - now;
+
+      // サイクル内の各週の開始日
+      const cycleStart  = new Date(info.cycleStartMs);
+      const cycleHalf   = new Date(info.cycleStartMs + hw * weekMs);
+      const cycleEnd    = new Date(info.cycleStartMs + cw * weekMs);
+
+      // 週グリッド
+      let weekCols = '';
+      for (let i = 1; i <= cw; i++) {
+        const wStart = new Date(info.cycleStartMs + (i - 1) * weekMs);
+        const mmdd   = `${String(wStart.getMonth()+1).padStart(2,'0')}/${String(wStart.getDate()).padStart(2,'0')}`;
+        let colCls = 'week-col' + (i < weekNo ? ' past' : i === weekNo ? ' current' : '');
+        let dotCls = 'week-dot'  + (i < weekNo ? ' past' : i === weekNo ? ' current' : '');
+        weekCols += `
+          <div class="${colCls}">
+            <div class="${dotCls}"></div>
+            <div class="week-num">W${i}</div>
+            <div class="week-date">${mmdd}</div>
+          </div>`;
       }
-
-      const phaseLabel = info.phase === 'first' ? t('firstHalf') : t('secondHalf');
-      const phaseClass = info.phase === 'first' ? 'first' : 'second';
-      const now = new Date();
-      const halfDiff  = info.nextHalfDate  - now;
-      const majorDiff = info.nextMajorDate - now;
 
       panel.innerHTML = `
         <div class="update-card">
           <div class="update-card-title">${t('cycleProgress')}</div>
-          <div class="progress-wrap">
-            <div class="progress-track">
-              <div class="progress-fill" style="width:${info.pct.toFixed(1)}%"></div>
-              <div class="progress-midline"></div>
-            </div>
-            <div class="progress-labels">
-              <span>${t('firstHalf')}</span>
-              <span>${t('secondHalf')}</span>
-            </div>
+          <div class="progress-track">
+            <div class="progress-fill" style="width:${info.pct.toFixed(1)}%"></div>
+            <div class="progress-midline"></div>
           </div>
-          <div class="week-dots">${dots}</div>
+          <div class="progress-dates">
+            <span>${fmtDate(cycleStart)}</span>
+            <span>${fmtDate(cycleHalf)}</span>
+            <span>${fmtDate(cycleEnd)}</span>
+          </div>
+          <div class="progress-labels" style="margin-top:2px">
+            <span>${t('firstHalf')}</span>
+            <span>${t('secondHalf')}</span>
+          </div>
+          <div class="week-grid" style="grid-template-columns:repeat(${cw},1fr)">${weekCols}</div>
         </div>
         <div class="update-card">
           <div class="update-card-title">${t('updateInfoTitle')}</div>
           <div class="update-row">
             <span class="update-lbl">${t('currentPhase')}</span>
-            <span class="update-val">
-              ${t('cycle')}${info.cycleNo}${t('cycleUnit')}
-              <span class="phase-badge ${phaseClass}">${phaseLabel}</span>
-            </span>
+            <span class="update-val"><span class="phase-badge ${phaseClass}">${phaseLabel}</span></span>
           </div>
           <div class="update-row">
-            <span class="update-lbl">${t('nextHalf')}</span>
-            <span class="update-val">${fmtDate(info.nextHalfDate)} ${fmtDiff(halfDiff)}</span>
+            <span class="update-lbl">${t('nextPhaseFrom')}</span>
+            <span class="update-val">${fmtDate(info.nextHalfDate)} ${fmtDiffShort(halfDiff)}</span>
           </div>
           <div class="update-row">
             <span class="update-lbl">${t('nextUpdate')}</span>
-            <span class="update-val">${fmtDate(info.nextMajorDate)} ${fmtDiff(majorDiff)}</span>
+            <span class="update-val">${fmtDate(info.nextMajorDate)} ${fmtDiffShort(majorDiff)}</span>
           </div>
         </div>
       `;
     }
 
     // ========== カウントダウン ==========
-    function fmtCountdown(ms) {
+    function fmtCountdownHMS(ms) {
       if (ms <= 0) return '00:00:00';
       const s = Math.floor(ms / 1000);
       const h = Math.floor(s / 3600);
       const m = Math.floor((s % 3600) / 60);
       const sec = s % 60;
       return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+    }
+
+    function fmtCountdownDH(ms) {
+      if (ms <= 0) return `0${t('d')} 0${t('h')}`;
+      const d = Math.floor(ms / 86400000);
+      const h = Math.floor((ms % 86400000) / 3600000);
+      const m = Math.floor((ms % 3600000) / 60000);
+      if (d > 0) return `${d}${t('d')} ${h}${t('h')}`;
+      return `${h}${t('h')} ${m}${t('m')}`;
     }
 
     function tickCountdown() {
@@ -907,7 +974,7 @@
       const next = resetFns[activeTab]?.next() ?? nextDaily();
       const diff = next - Date.now();
       label.textContent = t('nextReset');
-      time.textContent  = fmtCountdown(diff);
+      time.textContent  = activeTab === 'daily' ? fmtCountdownHMS(diff) : fmtCountdownDH(diff);
 
       if (diff <= 0) { checkAndReset(); renderAllPanels(); }
     }
