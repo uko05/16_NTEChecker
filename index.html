@@ -81,7 +81,7 @@
       gap: 6px;
     }
 
-    .lang-btn, .settings-btn {
+    .settings-btn {
       background: var(--surface2);
       border: 1px solid var(--border);
       border-radius: 6px;
@@ -94,7 +94,7 @@
       transition: background 0.15s, border-color 0.15s;
       line-height: 1.6;
     }
-    .lang-btn:hover, .settings-btn:hover {
+    .settings-btn:hover {
       background: var(--accent);
       border-color: #d4a800;
     }
@@ -479,7 +479,6 @@
     <div class="header-top">
       <h1 id="site-title">NTEチェッカー</h1>
       <div class="header-actions">
-        <button class="lang-btn" id="lang-btn">EN</button>
         <button class="settings-btn" id="settings-btn">⚙</button>
       </div>
     </div>
@@ -491,15 +490,15 @@
 
     <div class="tab-bar">
       <button class="tab-btn active" data-tab="daily">
-        <span data-i18n="daily">デイリー</span>
+        デイリー
         <span class="tab-badge" id="badge-daily">0/0</span>
       </button>
       <button class="tab-btn" data-tab="weekly">
-        <span data-i18n="weekly">ウィークリー</span>
+        ウィークリー
         <span class="tab-badge" id="badge-weekly">0/0</span>
       </button>
       <button class="tab-btn" data-tab="biweekly">
-        <span data-i18n="biweekly">隔週</span>
+        隔週
         <span class="tab-badge" id="badge-biweekly">0/0</span>
       </button>
     </div>
@@ -533,33 +532,18 @@
   </footer>
 
   <script type="module">
-    import { CONFIG, I18N, TASKS } from './tasks.js';
+    import { CONFIG, TASKS } from './tasks.js';
 
     // ========== 状態 ==========
-    let lang      = localStorage.getItem('nte_lang') || 'ja';
     let activeTab = 'daily';
 
     const LS = {
-      lang:       'nte_lang',
+      activeTab:  'nte_activeTab',
       checks:     tab => `nte_checks_${tab}`,
       lastReset:  tab => `nte_lastReset_${tab}`,
       hidden:     'nte_hidden',
       custom:     'nte_custom',
     };
-
-    // ========== i18n ==========
-    function t(key) { return I18N[lang]?.[key] ?? I18N.ja[key] ?? key; }
-
-    function applyI18n() {
-      document.querySelectorAll('[data-i18n]').forEach(el => {
-        el.textContent = t(el.dataset.i18n);
-      });
-      document.getElementById('site-title').textContent  = t('siteTitle');
-      document.getElementById('settings-title').textContent = t('settingsTitle');
-      document.getElementById('lang-btn').textContent    = lang === 'ja' ? 'EN' : 'JP';
-      document.title       = t('siteTitle') + ' - うーこの部屋';
-      document.documentElement.lang = lang;
-    }
 
     // ========== リセット時刻計算 ==========
     function lastDaily() {
@@ -617,8 +601,8 @@
     // ========== タスク一覧 ==========
     function allRaw(tab) {
       return [
-        ...(TASKS[tab] || []).map(t  => ({ id: t.id,    label: t[lang] || t.ja, isBuiltIn: true })),
-        ...getCustom().filter(t => t.tab === tab).map(t => ({ id: t.id, label: t.text,          isBuiltIn: false })),
+        ...(TASKS[tab] || []).map(t => ({ id: t.id, label: t.text, isBuiltIn: true })),
+        ...getCustom().filter(t => t.tab === tab).map(t => ({ id: t.id, label: t.text, isBuiltIn: false })),
       ];
     }
     function visibleTasks(tab) {
@@ -688,7 +672,7 @@
       if (tasks.length > 0 && tasks.every(t => checks[t.id])) {
         const div = document.createElement('div');
         div.className = 'all-done-msg';
-        div.textContent = t('allDone');
+        div.textContent = '✓ すべて完了！';
         panel.appendChild(div);
       }
     }
@@ -704,12 +688,12 @@
     }
 
     function fmtCountdownDH(ms) {
-      if (ms <= 0) return `0${t('d')} 0${t('h')}`;
+      if (ms <= 0) return '0日 0時間';
       const d = Math.floor(ms / 86400000);
       const h = Math.floor((ms % 86400000) / 3600000);
       const m = Math.floor((ms % 3600000) / 60000);
-      if (d > 0) return `${d}${t('d')} ${h}${t('h')}`;
-      return `${h}${t('h')} ${m}${t('m')}`;
+      if (d > 0) return `${d}日 ${h}時間`;
+      return `${h}時間 ${m}分`;
     }
 
     function tickCountdown() {
@@ -720,7 +704,7 @@
 
       const next = resetFns[activeTab]?.next() ?? nextDaily();
       const diff = next - Date.now();
-      label.textContent = t('nextReset');
+      label.textContent = '次のリセットまで';
       time.textContent  = activeTab === 'daily' ? fmtCountdownHMS(diff) : fmtCountdownDH(diff);
 
       if (diff <= 0) { checkAndReset(); renderAllPanels(); }
@@ -732,13 +716,13 @@
       const hidden = getHidden();
       const custom = getCustom();
       const tabs   = ['daily','weekly','biweekly'];
-      const tabLbl = { daily: t('daily'), weekly: t('weekly'), biweekly: t('biweekly') };
+      const tabLbl = { daily: 'デイリー', weekly: 'ウィークリー', biweekly: '隔週' };
 
-      let html = `<div class="settings-section"><div class="settings-section-title">${t('taskVisibility')}</div>`;
+      let html = `<div class="settings-section"><div class="settings-section-title">タスク表示設定</div>`;
 
       tabs.forEach(tab => {
         const all = [
-          ...(TASKS[tab] || []).map(tk => ({ id: tk.id, label: tk[lang] || tk.ja })),
+          ...(TASKS[tab] || []).map(tk => ({ id: tk.id, label: tk.text })),
           ...custom.filter(c => c.tab === tab).map(c => ({ id: c.id, label: c.text })),
         ];
         if (all.length === 0) return;
@@ -758,20 +742,20 @@
 
       html += `</div>
         <div class="settings-section">
-          <div class="settings-section-title">${t('customTasks')}</div>
+          <div class="settings-section-title">カスタムタスク</div>
           <div class="cat-btns">
-            <button class="cat-btn active" data-cat="daily">${t('daily')}</button>
-            <button class="cat-btn" data-cat="weekly">${t('weekly')}</button>
-            <button class="cat-btn" data-cat="biweekly">${t('biweekly')}</button>
+            <button class="cat-btn active" data-cat="daily">デイリー</button>
+            <button class="cat-btn" data-cat="weekly">ウィークリー</button>
+            <button class="cat-btn" data-cat="biweekly">隔週</button>
           </div>
           <div class="custom-input-row">
-            <input class="custom-input" id="custom-input" placeholder="${escHtml(t('taskPlaceholder'))}" maxlength="50">
-            <button class="custom-add-btn" id="custom-add-btn">${t('addTask')}</button>
+            <input class="custom-input" id="custom-input" placeholder="タスク名を入力" maxlength="50">
+            <button class="custom-add-btn" id="custom-add-btn">追加</button>
           </div>
           <div id="custom-list">`;
 
       if (custom.length === 0) {
-        html += `<p class="no-custom-msg">${t('noCustomTasks')}</p>`;
+        html += `<p class="no-custom-msg">（なし）</p>`;
       } else {
         custom.forEach(c => {
           html += `
@@ -831,6 +815,7 @@
     // ========== タブ切り替え ==========
     function switchTab(tab) {
       activeTab = tab;
+      localStorage.setItem(LS.activeTab, tab);
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === `panel-${tab}`));
       tickCountdown();
@@ -839,13 +824,6 @@
     // ========== イベント ==========
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => switchTab(btn.dataset.tab));
-    });
-
-    document.getElementById('lang-btn').addEventListener('click', () => {
-      lang = lang === 'ja' ? 'en' : 'ja';
-      localStorage.setItem(LS.lang, lang);
-      applyI18n();
-      renderAllPanels();
     });
 
     const overlay = document.getElementById('settings-overlay');
@@ -858,9 +836,22 @@
 
     // ========== 初期化 ==========
     checkAndReset();
-    applyI18n();
     renderAllPanels();
+
+    const savedTab = localStorage.getItem(LS.activeTab);
+    if (savedTab && ['daily','weekly','biweekly'].includes(savedTab)) switchTab(savedTab);
+    else tickCountdown();
+
     setInterval(tickCountdown, 1000);
+
+    // 裏から復帰したときにリセット判定と再描画
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        checkAndReset();
+        renderAllPanels();
+        tickCountdown();
+      }
+    });
 
     // PWA Service Worker
     if ('serviceWorker' in navigator) {
