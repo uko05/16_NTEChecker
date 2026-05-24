@@ -7,11 +7,14 @@ export const CONFIG = {
   // 隔週リセット基準日（月曜 05:00 を基準に2週サイクル）
   biweeklyBaseDate: '2026-05-11',
 
-  // 大型アプデ基準日（6週ごとにアプデ、前半3週/後半3週に分かれる）
+  // 大型アプデ基準日
   updateBaseDate: '2026-04-29',
 
-  // アプデサイクルの週数（前半・後半はこの半分）
-  updateCycleWeeks: 6,
+  // アプデサイクルの週数（前半＋後半）
+  updateCycleWeeks: 5,
+
+  // 前半の週数（後半 = updateCycleWeeks - updateFirstHalfWeeks）
+  updateFirstHalfWeeks: 3,
 };
 
 // ------------------------------------------------------------
@@ -101,7 +104,6 @@ export const TASKS = {
     { id: 'w3', ja: 'オークションハウスを確認', en: 'Check Auction House' },
   ],
   biweekly: [
-    { id: 'b1', ja: '隔週タスク1（要確認）', en: 'Biweekly Task 1 (TBD)' },
-    { id: 'b2', ja: '隔週タスク2（要確認）', en: 'Biweekly Task 2 (TBD)' },
+    { id: 'b1', ja: 'にくきゅう大強盗', en: 'Pink Paws Heist' },
   ],
 };

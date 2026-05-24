@@ -307,7 +307,7 @@
     }
     .progress-midline {
       position: absolute;
-      top: 0; left: 50%;
+      top: 0;
       width: 2px; height: 100%;
       background: rgba(0,0,0,0.18);
     }
@@ -830,8 +830,8 @@
 
     // ========== アプデ情報計算 ==========
     function getCycleInfo() {
-      const cw      = CONFIG.updateCycleWeeks || 6;  // サイクル週数
-      const hw      = cw / 2;                        // 前半/後半の境界（週）
+      const cw      = CONFIG.updateCycleWeeks || 6;
+      const hw      = CONFIG.updateFirstHalfWeeks || cw / 2;
       const base    = new Date(CONFIG.updateBaseDate + 'T05:00:00');
       const now     = new Date();
       const weekMs  = 7 * 86400000;
@@ -878,7 +878,7 @@
       const panel = document.getElementById('panel-update');
       const info  = getCycleInfo();
       const cw    = CONFIG.updateCycleWeeks || 6;
-      const hw    = cw / 2;
+      const hw    = CONFIG.updateFirstHalfWeeks || cw / 2;
       const weekMs = 7 * 86400000;
       const now   = new Date();
 
@@ -913,7 +913,7 @@
           <div class="update-card-title">${t('cycleProgress')}</div>
           <div class="progress-track">
             <div class="progress-fill" style="width:${info.pct.toFixed(1)}%"></div>
-            <div class="progress-midline"></div>
+            <div class="progress-midline" style="left:${(hw/cw*100).toFixed(1)}%"></div>
           </div>
           <div class="progress-dates">
             <span>${fmtDate(cycleStart)}</span>
