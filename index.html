@@ -247,137 +247,6 @@
       padding: 20px 0 8px;
     }
 
-    /* ========== アプデ情報 ========== */
-    .update-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 12px;
-    }
-
-    .update-card-title {
-      font-size: 0.72rem;
-      font-weight: bold;
-      color: var(--muted);
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      margin-bottom: 12px;
-    }
-
-    .update-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 9px 0;
-      border-bottom: 1px solid var(--border);
-      font-size: 0.88rem;
-      gap: 8px;
-    }
-    .update-row:last-child { border-bottom: none; }
-    .update-lbl { color: var(--muted); flex-shrink: 0; }
-    .update-val { font-weight: bold; text-align: right; }
-
-    .phase-badge {
-      display: inline-block;
-      padding: 2px 10px;
-      border-radius: 12px;
-      font-size: 0.78rem;
-      font-weight: bold;
-    }
-    .phase-badge.first  { background: rgba(255,204,0,0.3);  color: #664400; }
-    .phase-badge.second { background: rgba(33,150,243,0.18); color: #1565c0; }
-
-    /* サイクル進捗バー */
-    .progress-wrap { margin-bottom: 10px; }
-
-    .progress-track {
-      height: 10px;
-      background: var(--surface2);
-      border-radius: 5px;
-      overflow: hidden;
-      position: relative;
-      margin-bottom: 5px;
-    }
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #ffcc00, #ff9800);
-      border-radius: 5px;
-      transition: width 0.4s ease;
-    }
-    .progress-midline {
-      position: absolute;
-      top: 0;
-      width: 2px; height: 100%;
-      background: rgba(0,0,0,0.18);
-    }
-
-    .progress-labels {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.68rem;
-      color: var(--muted);
-      padding: 0 2px;
-    }
-
-    .week-dots {
-      display: flex;
-      justify-content: space-around;
-      margin-top: 10px;
-      padding: 0 4px;
-    }
-    .week-dot {
-      width: 10px; height: 10px;
-      border-radius: 50%;
-      background: var(--surface2);
-      border: 1.5px solid var(--border);
-      position: relative;
-    }
-    .week-dot.past    { background: var(--accent); border-color: #d4a800; }
-    .week-dot.current {
-      background: #ff8c00;
-      border-color: #e67c00;
-      box-shadow: 0 0 5px rgba(255,140,0,0.55);
-    }
-
-    /* ウィーク列（ドット＋番号＋日付） */
-    .week-grid {
-      display: grid;
-      gap: 4px;
-      margin-top: 12px;
-    }
-    .week-col {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 3px;
-    }
-    .week-num {
-      font-size: 0.58rem;
-      color: var(--muted);
-      font-weight: bold;
-    }
-    .week-date {
-      font-size: 0.52rem;
-      color: var(--muted);
-      text-align: center;
-      line-height: 1.3;
-    }
-    .week-col.past .week-num,
-    .week-col.past .week-date { color: #b38a00; }
-    .week-col.current .week-num,
-    .week-col.current .week-date { color: #e67c00; font-weight: bold; }
-
-    /* プログレスバー下の日付ライン */
-    .progress-dates {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.6rem;
-      color: var(--muted);
-      margin-top: 4px;
-      padding: 0 2px;
-    }
-
     /* ========== 設定パネル ========== */
     .settings-overlay {
       position: fixed;
@@ -633,9 +502,6 @@
         <span data-i18n="biweekly">隔週</span>
         <span class="tab-badge" id="badge-biweekly">0/0</span>
       </button>
-      <button class="tab-btn" data-tab="update">
-        <span data-i18n="update">アプデ</span>
-      </button>
     </div>
   </header>
 
@@ -643,7 +509,6 @@
     <div id="panel-daily"    class="tab-panel active"></div>
     <div id="panel-weekly"   class="tab-panel"></div>
     <div id="panel-biweekly" class="tab-panel"></div>
-    <div id="panel-update"   class="tab-panel"></div>
   </main>
 
   <!-- 設定パネル -->
@@ -828,122 +693,6 @@
       }
     }
 
-    // ========== アプデ情報計算 ==========
-    function getCycleInfo() {
-      const cw      = CONFIG.updateCycleWeeks || 6;
-      const hw      = CONFIG.updateFirstHalfWeeks || cw / 2;
-      const base    = new Date(CONFIG.updateBaseDate + 'T05:00:00');
-      const now     = new Date();
-      const weekMs  = 7 * 86400000;
-      const diffMs  = now - base;
-
-      if (diffMs < 0) {
-        const csMs = base.getTime();
-        return { cycleNo: 1, weekInCycle: 0, phase: 'first', pct: 0,
-          cycleStartMs: csMs,
-          nextHalfDate:  new Date(csMs + hw * weekMs),
-          nextMajorDate: new Date(csMs + cw * weekMs) };
-      }
-
-      const totalWeeks  = diffMs / weekMs;
-      const cycleNo     = Math.floor(totalWeeks / cw) + 1;
-      const weekInCycle = totalWeeks % cw;
-      const phase       = weekInCycle < hw ? 'first' : 'second';
-      const pct         = (weekInCycle / cw) * 100;
-
-      const cycleStartMs  = base.getTime() + Math.floor(totalWeeks / cw) * cw * weekMs;
-      const nextHalfDate  = phase === 'first'
-        ? new Date(cycleStartMs + hw * weekMs)
-        : new Date(cycleStartMs + cw * weekMs);
-      const nextMajorDate = new Date(cycleStartMs + cw * weekMs);
-
-      return { cycleNo, weekInCycle, phase, pct, cycleStartMs, nextHalfDate, nextMajorDate };
-    }
-
-    function fmtDate(d) {
-      return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
-    }
-
-    function fmtDiffShort(ms) {
-      if (ms <= 0) return '';
-      const d = Math.floor(ms / 86400000);
-      const h = Math.floor((ms % 86400000) / 3600000);
-      const m = Math.floor((ms % 3600000)  / 60000);
-      const pre = lang === 'ja' ? '残り' : 'in ';
-      if (d > 0) return `(${pre}${d}${t('d')} ${h}${t('h')})`;
-      return `(${pre}${h}${t('h')} ${m}${t('m')})`;
-    }
-
-    function renderUpdatePanel() {
-      const panel = document.getElementById('panel-update');
-      const info  = getCycleInfo();
-      const cw    = CONFIG.updateCycleWeeks || 6;
-      const hw    = CONFIG.updateFirstHalfWeeks || cw / 2;
-      const weekMs = 7 * 86400000;
-      const now   = new Date();
-
-      const weekNo       = Math.floor(info.weekInCycle) + 1;
-      const phaseLabel   = info.phase === 'first' ? t('firstHalf') : t('secondHalf');
-      const phaseClass   = info.phase === 'first' ? 'first' : 'second';
-      const halfDiff     = info.nextHalfDate  - now;
-      const majorDiff    = info.nextMajorDate - now;
-
-      // サイクル内の各週の開始日
-      const cycleStart  = new Date(info.cycleStartMs);
-      const cycleHalf   = new Date(info.cycleStartMs + hw * weekMs);
-      const cycleEnd    = new Date(info.cycleStartMs + cw * weekMs);
-
-      // 週グリッド
-      let weekCols = '';
-      for (let i = 1; i <= cw; i++) {
-        const wStart = new Date(info.cycleStartMs + (i - 1) * weekMs);
-        const mmdd   = `${String(wStart.getMonth()+1).padStart(2,'0')}/${String(wStart.getDate()).padStart(2,'0')}`;
-        let colCls = 'week-col' + (i < weekNo ? ' past' : i === weekNo ? ' current' : '');
-        let dotCls = 'week-dot'  + (i < weekNo ? ' past' : i === weekNo ? ' current' : '');
-        weekCols += `
-          <div class="${colCls}">
-            <div class="${dotCls}"></div>
-            <div class="week-num">W${i}</div>
-            <div class="week-date">${mmdd}</div>
-          </div>`;
-      }
-
-      panel.innerHTML = `
-        <div class="update-card">
-          <div class="update-card-title">${t('cycleProgress')}</div>
-          <div class="progress-track">
-            <div class="progress-fill" style="width:${info.pct.toFixed(1)}%"></div>
-            <div class="progress-midline" style="left:${(hw/cw*100).toFixed(1)}%"></div>
-          </div>
-          <div class="progress-dates">
-            <span>${fmtDate(cycleStart)}</span>
-            <span>${fmtDate(cycleHalf)}</span>
-            <span>${fmtDate(cycleEnd)}</span>
-          </div>
-          <div class="progress-labels" style="margin-top:2px">
-            <span>${t('firstHalf')}</span>
-            <span>${t('secondHalf')}</span>
-          </div>
-          <div class="week-grid" style="grid-template-columns:repeat(${cw},1fr)">${weekCols}</div>
-        </div>
-        <div class="update-card">
-          <div class="update-card-title">${t('updateInfoTitle')}</div>
-          <div class="update-row">
-            <span class="update-lbl">${t('currentPhase')}</span>
-            <span class="update-val"><span class="phase-badge ${phaseClass}">${phaseLabel}</span></span>
-          </div>
-          <div class="update-row">
-            <span class="update-lbl">${t('nextPhaseFrom')}</span>
-            <span class="update-val">${fmtDate(info.nextHalfDate)} ${fmtDiffShort(halfDiff)}</span>
-          </div>
-          <div class="update-row">
-            <span class="update-lbl">${t('nextUpdate')}</span>
-            <span class="update-val">${fmtDate(info.nextMajorDate)} ${fmtDiffShort(majorDiff)}</span>
-          </div>
-        </div>
-      `;
-    }
-
     // ========== カウントダウン ==========
     function fmtCountdownHMS(ms) {
       if (ms <= 0) return '00:00:00';
@@ -968,8 +717,6 @@
       const label = document.getElementById('cd-label');
       const time  = document.getElementById('cd-time');
 
-      if (activeTab === 'update') { bar.style.display = 'none'; return; }
-      bar.style.display = '';
 
       const next = resetFns[activeTab]?.next() ?? nextDaily();
       const diff = next - Date.now();
@@ -1079,7 +826,6 @@
       renderChecklist('daily');
       renderChecklist('weekly');
       renderChecklist('biweekly');
-      renderUpdatePanel();
     }
 
     // ========== タブ切り替え ==========
