@@ -26,7 +26,7 @@ export const TASKS = {
     { id: 'd10', text: 'ちぃちゃんファンス回収' },
   ],
   weekly: [
-    { id: 'w1', text: '異常巡礼（週3回まで）' },
+    { id: 'w1', text: '異常巡礼', count: 3 },
     { id: 'w2', text: 'シティスタミナを消費する' },
     { id: 'w3', text: 'オークションハウスを確認' },
     { id: 'w4', text: '貪欲の宝庫（マモン）クリア' },

@@ -239,6 +239,71 @@
       transition: color 0.15s;
     }
 
+    /* 複数チェックボックス */
+    .multi-boxes {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .check-box.box-checked {
+      background: var(--accent);
+      border-color: #d4a800;
+    }
+    .check-box.box-checked::after {
+      content: '';
+      width: 11px; height: 6px;
+      border-left: 2.5px solid #554400;
+      border-bottom: 2.5px solid #554400;
+      transform: rotate(-45deg) translateY(-1px);
+      display: block;
+    }
+
+    /* 初回イントロ */
+    .intro-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 90;
+    }
+    .intro-tooltip {
+      position: fixed;
+      top: 64px;
+      right: 8px;
+      background: var(--surface);
+      border-radius: 10px;
+      padding: 14px 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.22);
+      z-index: 150;
+      max-width: 200px;
+      text-align: center;
+    }
+    .intro-tooltip::before {
+      content: '';
+      position: absolute;
+      top: -10px;
+      right: 14px;
+      border: 7px solid transparent;
+      border-bottom-color: var(--surface);
+      border-top: none;
+    }
+    .intro-msg {
+      font-size: 0.86rem;
+      line-height: 1.55;
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+    .intro-ok {
+      background: var(--accent);
+      border: none;
+      border-radius: 6px;
+      padding: 6px 18px;
+      font-family: var(--font);
+      font-size: 0.82rem;
+      font-weight: bold;
+      color: #554400;
+      cursor: pointer;
+    }
+
     .all-done-msg {
       text-align: center;
       color: #4caf50;
@@ -600,14 +665,24 @@
 
     // ========== タスク一覧 ==========
     function allRaw(tab) {
-      return [
-        ...(TASKS[tab] || []).map(t => ({ id: t.id, label: t.text, isBuiltIn: true })),
-        ...getCustom().filter(t => t.tab === tab).map(t => ({ id: t.id, label: t.text, isBuiltIn: false })),
-      ];
+      const result = [];
+      (TASKS[tab] || []).forEach(t => {
+        if (t.count > 1) {
+          for (let i = 0; i < t.count; i++) {
+            result.push({ id: `${t.id}_${i}`, label: t.text, parentId: t.id, isBuiltIn: true });
+          }
+        } else {
+          result.push({ id: t.id, label: t.text, isBuiltIn: true });
+        }
+      });
+      getCustom().filter(c => c.tab === tab).forEach(c => {
+        result.push({ id: c.id, label: c.text, isBuiltIn: false });
+      });
+      return result;
     }
     function visibleTasks(tab) {
       const h = getHidden();
-      return allRaw(tab).filter(t => !h[t.id]);
+      return allRaw(tab).filter(t => !h[t.parentId || t.id]);
     }
 
     function escHtml(s) {
@@ -636,27 +711,65 @@
       const ul = document.createElement('ul');
       ul.className = 'checklist';
 
+      const rendered = new Set();
+
       tasks.forEach(task => {
-        const li    = document.createElement('li');
-        li.className = 'check-item' + (checks[task.id] ? ' checked' : '');
+        if (task.parentId) {
+          if (rendered.has(task.parentId)) return;
+          rendered.add(task.parentId);
 
-        const box   = document.createElement('div');
-        box.className = 'check-box';
+          const group = tasks.filter(t => t.parentId === task.parentId);
+          const allChecked = group.every(t => checks[t.id]);
 
-        const lbl   = document.createElement('span');
-        lbl.className = 'check-label';
-        lbl.textContent = task.label;
+          const li = document.createElement('li');
+          li.className = 'check-item' + (allChecked ? ' checked' : '');
 
-        li.append(box, lbl);
-        li.addEventListener('click', () => {
-          const next = !li.classList.contains('checked');
-          setCheck(tab, task.id, next);
-          li.classList.toggle('checked', next);
-          updateBadge(tab);
-          renderAllDoneMsg(tab);
-        });
+          const boxes = document.createElement('div');
+          boxes.className = 'multi-boxes';
+          group.forEach(t => {
+            const box = document.createElement('div');
+            box.className = 'check-box' + (checks[t.id] ? ' box-checked' : '');
+            box.addEventListener('click', () => {
+              const next = !checks[t.id];
+              checks[t.id] = next;
+              setCheck(tab, t.id, next);
+              box.classList.toggle('box-checked', next);
+              const nowAll = group.every(t2 => checks[t2.id]);
+              li.classList.toggle('checked', nowAll);
+              updateBadge(tab);
+              renderAllDoneMsg(tab);
+            });
+            boxes.appendChild(box);
+          });
 
-        ul.appendChild(li);
+          const lbl = document.createElement('span');
+          lbl.className = 'check-label';
+          lbl.textContent = task.label;
+
+          li.append(boxes, lbl);
+          ul.appendChild(li);
+        } else {
+          const li  = document.createElement('li');
+          li.className = 'check-item' + (checks[task.id] ? ' checked' : '');
+
+          const box = document.createElement('div');
+          box.className = 'check-box';
+
+          const lbl = document.createElement('span');
+          lbl.className = 'check-label';
+          lbl.textContent = task.label;
+
+          li.append(box, lbl);
+          li.addEventListener('click', () => {
+            const next = !li.classList.contains('checked');
+            setCheck(tab, task.id, next);
+            li.classList.toggle('checked', next);
+            updateBadge(tab);
+            renderAllDoneMsg(tab);
+          });
+
+          ul.appendChild(li);
+        }
       });
 
       panel.appendChild(ul);
@@ -834,6 +947,32 @@
     document.getElementById('settings-close').addEventListener('click', () => overlay.classList.remove('open'));
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
 
+    // ========== 初回イントロ ==========
+    function showIntroIfNeeded() {
+      if (localStorage.getItem('nte_intro_shown')) return;
+
+      const overlay = document.createElement('div');
+      overlay.className = 'intro-overlay';
+
+      const tip = document.createElement('div');
+      tip.className = 'intro-tooltip';
+      tip.innerHTML = `
+        <p class="intro-msg">⚙ ここから<br>細かく設定できるよ！</p>
+        <button class="intro-ok">わかった！</button>
+      `;
+
+      const dismiss = () => {
+        overlay.remove();
+        tip.remove();
+        localStorage.setItem('nte_intro_shown', '1');
+      };
+
+      overlay.addEventListener('click', dismiss);
+      tip.querySelector('.intro-ok').addEventListener('click', e => { e.stopPropagation(); dismiss(); });
+
+      document.body.append(overlay, tip);
+    }
+
     // ========== 初期化 ==========
     checkAndReset();
     renderAllPanels();
@@ -843,6 +982,7 @@
     else tickCountdown();
 
     setInterval(tickCountdown, 1000);
+    setTimeout(showIntroIfNeeded, 400);
 
     // 裏から復帰したときにリセット判定と再描画
     document.addEventListener('visibilitychange', () => {
