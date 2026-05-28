@@ -506,6 +506,23 @@
 
     .no-custom-msg { font-size: 0.8rem; color: var(--muted); padding: 6px 0; }
 
+    .install-btn {
+      width: 100%;
+      padding: 10px;
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      font-family: var(--font);
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: #554400;
+      cursor: pointer;
+      margin-top: 4px;
+      transition: opacity 0.15s;
+    }
+    .install-btn:hover { opacity: 0.85; }
+    .install-note { font-size: 0.82rem; color: var(--muted); line-height: 1.6; padding: 4px 0; }
+
     /* ========== フッター ========== */
     .site-footer {
       position: fixed;
@@ -881,6 +898,21 @@
       }
 
       html += `</div></div>`;
+
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      html += `<div class="settings-section"><div class="settings-section-title">ホーム画面に追加</div>`;
+      if (isStandalone) {
+        html += `<p class="install-note">✓ すでにインストール済みです</p>`;
+      } else if (installPrompt) {
+        html += `<button class="install-btn" id="install-btn">ホーム画面に追加する</button>`;
+      } else if (isIOS) {
+        html += `<p class="install-note">Safariの <strong>共有ボタン（↑）</strong> をタップ →「ホーム画面に追加」でインストールできます</p>`;
+      } else {
+        html += `<p class="install-note">このブラウザではインストールできないか、すでにインストール済みです</p>`;
+      }
+      html += `</div>`;
+
       body.innerHTML = html;
 
       // トグル
@@ -916,6 +948,20 @@
       body.querySelectorAll('.custom-del-btn').forEach(btn => {
         btn.addEventListener('click', () => { delCustomTask(btn.dataset.did); renderSettings(); renderAllPanels(); });
       });
+
+      // インストール
+      const installBtn = body.querySelector('#install-btn');
+      if (installBtn) {
+        installBtn.addEventListener('click', async () => {
+          if (!installPrompt) return;
+          installPrompt.prompt();
+          const { outcome } = await installPrompt.userChoice;
+          if (outcome === 'accepted') {
+            installPrompt = null;
+            renderSettings();
+          }
+        });
+      }
     }
 
     // ========== 全パネル再描画 ==========
@@ -946,6 +992,13 @@
     });
     document.getElementById('settings-close').addEventListener('click', () => overlay.classList.remove('open'));
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+
+    // ========== PWAインストール ==========
+    let installPrompt = null;
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      installPrompt = e;
+    });
 
     // ========== 初回イントロ ==========
     function showIntroIfNeeded() {
