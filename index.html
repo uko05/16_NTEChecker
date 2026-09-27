@@ -1106,10 +1106,32 @@
   .uko-about li{margin:2px 0;list-style:revert}
   .uko-about dt{font-weight:bold;margin-top:6px}
   .uko-about dd{margin:0 0 4px 1em}
+  .uko-about [hidden]{display:none!important}
   </style>
   <details class="uko-about">
-    <summary>このサイトについて</summary>
-    <div class="uko-about-body"><h2>NTEチェッカーとは</h2><p>NTE（Neverness to Everness）のデイリー・ウィークリー・隔週タスクの進捗を管理できる、無料のチェックリストです。次のリセットまでの残り時間も表示されます。</p><h2>使い方</h2><ul><li>終わったタスクにチェックを入れます。リセット時間になると自動でチェックが外れます。</li><li>「タスク設定」から、自分だけのカスタムタスクを追加できます。</li><li>進捗はブラウザに保存されるので、次に開いたときも続きから使えます。</li></ul></div>
+    <summary><span data-uko-lang="ja">このサイトについて</span><span data-uko-lang="en" hidden>About this site</span></summary>
+    <div class="uko-about-body" data-uko-lang="ja"><h2>NTEチェッカーとは</h2><p>NTE（Neverness to Everness）のデイリー・ウィークリー・隔週タスクの進捗を管理できる、無料のチェックリストです。次のリセットまでの残り時間も表示されます。</p><h2>使い方</h2><ul><li>終わったタスクにチェックを入れます。リセット時間になると自動でチェックが外れます。</li><li>「タスク設定」から、自分だけのカスタムタスクを追加できます。</li><li>進捗はブラウザに保存されるので、次に開いたときも続きから使えます。</li></ul></div>
+    <div class="uko-about-body" data-uko-lang="en" lang="en" hidden><h2>What is NTE Checker?</h2><p>A free checklist for tracking your daily, weekly and biweekly tasks in NTE (Neverness to Everness). It also shows the time left until the next reset. (Japanese only)</p><h2>How to use</h2><ul><li>Check off tasks when you finish them. The checks are cleared automatically at reset time.</li><li>Add your own custom tasks from "Task settings".</li><li>Your progress is saved in your browser, so you can pick up where you left off next time.</li></ul></div>
   </details>
+  <script>
+  (function(){
+    // 説明文の日英切り替え。言語ラジオがあるサイトはその選択、ないサイトは共通のlocalStorage('lang')に合わせる
+    var box=document.currentScript.previousElementSibling;
+    function cur(){
+      var r=document.querySelector('input[name="lang"]:checked');
+      if(r) return r.value==='en'?'en':'ja';
+      try{return localStorage.getItem('lang')==='en'?'en':'ja';}catch(e){return 'ja';}
+    }
+    function apply(){
+      var l=cur();
+      box.querySelectorAll('[data-uko-lang]').forEach(function(n){n.hidden=n.getAttribute('data-uko-lang')!==l;});
+    }
+    apply();
+    document.addEventListener('change',function(e){if(e.target&&e.target.name==='lang')setTimeout(apply,0);});
+    document.addEventListener('DOMContentLoaded',apply);
+    window.addEventListener('load',apply);
+    new MutationObserver(apply).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
+  })();
+  </script>
 </body>
 </html>
